@@ -30,7 +30,6 @@ const CloseIcon = () => (
 export default function Inventario() {
   const [productos, setProductos] = useState([]);
   const [cargando, setCargando] = useState(true);
-  const [filtroActivo, setFiltroActivo] = useState("Todas");
   
   // Estado para Modal Formulario (Crear/Editar)
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -39,17 +38,21 @@ export default function Inventario() {
   const [errorMensaje, setErrorMensaje] = useState('');
   const [form, setForm] = useState({
     nombre: '',
-    descripcion: '',
     precio: '',
-    imagen: ''
+    categoria: '',
+    unidad_medida: '',
+    cantidad: '',
+    stock_minimo: '',
+    fecha_vencimiento: ''
   });
 
   // Estado para Modal Confirmar Eliminar
   const [productoEliminar, setProductoEliminar] = useState(null);
   const [eliminando, setEliminando] = useState(false);
 
-  // Filtros de categorías
-  const categorias = ["Todas", "Harinas", "Carnes", "Lácteos", "Vegetales", "Salsas"];
+  // Estado para búsqueda
+  const [busqueda, setBusqueda] = useState('');
+
 
   // ======= CONEXIÓN REAL AL BACKEND =======
   const fetchProductos = async () => {
@@ -99,13 +102,16 @@ export default function Inventario() {
       setEditandoId(producto.idproducto || producto.id);
       setForm({
         nombre: producto.nombre || '',
-        descripcion: producto.descripcion || '',
         precio: producto.precio !== undefined ? producto.precio : '',
-        imagen: producto.imagen || ''
+        categoria: producto.categoria || producto.idcategoria || '',
+        unidad_medida: producto.unidad_medida || '',
+        cantidad: producto.cantidad !== undefined ? producto.cantidad : '',
+        stock_minimo: producto.stock_minimo !== undefined ? producto.stock_minimo : '',
+        fecha_vencimiento: producto.fecha_vencimiento ? producto.fecha_vencimiento.split('T')[0] : (producto.vencimiento ? producto.vencimiento.split('T')[0] : '')
       });
     } else {
       setEditandoId(null);
-      setForm({ nombre: '', descripcion: '', precio: '', imagen: '' });
+      setForm({ nombre: '', precio: '', categoria: '', unidad_medida: '', cantidad: '', stock_minimo: '', fecha_vencimiento: '' });
     }
     setIsModalOpen(true);
   };
@@ -136,9 +142,12 @@ export default function Inventario() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           nombre: form.nombre,
-          descripcion: form.descripcion,
-          precio: parseFloat(form.precio),
-          imagen: form.imagen
+          precio: parseFloat(form.precio) || 0,
+          categoria: form.categoria,
+          unidad_medida: form.unidad_medida,
+          cantidad: parseInt(form.cantidad, 10) || 0,
+          stock_minimo: parseInt(form.stock_minimo, 10) || 0,
+          fecha_vencimiento: form.fecha_vencimiento || null
         })
       });
 
@@ -175,10 +184,43 @@ export default function Inventario() {
     return <span className="px-2.5 py-1 bg-gray-100/80 text-gray-600 border border-gray-200 rounded-md text-xs font-semibold">{categoria}</span>;
   }
 
+  // Lógica de cálculo de estado
+  const calcularEstado = (cantidad, stockMinimo) => {
+    const cant = Number(cantidad) || 0;
+    const min = Number(stockMinimo) || 0;
+    if (cant <= min) return 'Bajo';
+    if (cant <= min + 5) return 'Medio';
+    return 'Bueno';
+  };
+
+  // Lógica de vencimiento
+  const calcularVencimiento = (fecha) => {
+    if (!fecha) return { texto: '-', estado: 'normal' };
+    
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    
+    const fechaVen = new Date(fecha);
+    // Si no es una fecha válida, retornar tal cual
+    if (isNaN(fechaVen.getTime())) return { texto: fecha, estado: 'normal' };
+    
+    fechaVen.setHours(0, 0, 0, 0);
+    
+    const difTiempo = fechaVen.getTime() - hoy.getTime();
+    const difDias = Math.ceil(difTiempo / (1000 * 3600 * 24));
+    
+    if (difDias < 0) {
+      return { texto: 'Vencido', estado: 'vencido' };
+    } else if (difDias <= 5) {
+      return { texto: `Vence en ${difDias} días`, estado: 'cerca' };
+    } else {
+      return { texto: fechaVen.toLocaleDateString('es-ES'), estado: 'normal' };
+    }
+  };
+
   // Filtrado local
   const productosMostrar = productos.filter(p => {
-    if (filtroActivo === "Todas") return true;
-    return p.categoria === filtroActivo;
+    return p.nombre && p.nombre.toLowerCase().includes(busqueda.toLowerCase());
   });
 
   return (
@@ -205,26 +247,13 @@ export default function Inventario() {
           </div>
           <input 
             type="text" 
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
             className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 sm:text-sm transition-colors shadow-sm" 
-            placeholder="Buscar productos..."
+            placeholder="Buscar por nombre..."
           />
         </div>
 
-        <div className="flex overflow-x-auto w-full xl:w-auto pb-2 xl:pb-0 gap-2 no-scrollbar">
-          {categorias.map(cat => (
-            <button 
-              key={cat}
-              onClick={() => setFiltroActivo(cat)}
-              className={`whitespace-nowrap px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
-                filtroActivo === cat 
-                ? 'bg-orange-500 text-white border border-orange-500 shadow-md transform scale-[1.02]' 
-                : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50 hover:text-gray-900 hover:border-gray-400 shadow-sm'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Tabla de Datos */}
@@ -267,26 +296,31 @@ export default function Inventario() {
                       {prod.nombre}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {getCategoriaBadge(prod.categoria)}
+                      {getCategoriaBadge(prod.idcategoria || prod.categoria)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">
-                      {prod.cantidad || <span className="text-gray-400 italic">-</span>}
+                      {prod.cantidad !== undefined && prod.cantidad !== null ? prod.cantidad : <span className="text-gray-400 italic">-</span>}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-400">
-                      {prod.stock_minimo || "-"}
+                      {prod.stock_minimo !== undefined && prod.stock_minimo !== null ? prod.stock_minimo : "-"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {getEstadoBadge(prod.estado)}
+                      {getEstadoBadge(calcularEstado(prod.cantidad, prod.stock_minimo))}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <div className="flex flex-col justify-center">
-                        <span className="font-medium text-gray-700">{prod.vencimiento || <span className="text-gray-400 italic">-</span>}</span>
-                        {prod.diasParaVencer !== undefined && prod.diasParaVencer <= 5 && (
-                          <span className="text-red-500 bg-red-50 px-1 py-0.5 rounded text-[11px] font-bold flex items-center mt-1 w-max">
-                            <AlertIcon /> Vence en {prod.diasParaVencer}d
-                          </span>
-                        )}
-                      </div>
+                      {(() => {
+                        const v = calcularVencimiento(prod.fecha_vencimiento || prod.vencimiento);
+                        if (v.estado === 'vencido') {
+                          return <span className="text-red-600 font-black">{v.texto}</span>;
+                        } else if (v.estado === 'cerca') {
+                          return (
+                            <span className="text-red-500 bg-red-50 px-2 py-0.5 rounded text-xs font-bold flex items-center w-max">
+                              <AlertIcon /> {v.texto}
+                            </span>
+                          );
+                        }
+                        return <span className="text-gray-700 font-medium">{v.texto}</span>;
+                      })()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">
                       {formatearMoneda(prod.precio)}
@@ -334,8 +368,8 @@ export default function Inventario() {
               )}
               
               <form id="product-form" onSubmit={handleSubmit} className="space-y-5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div className="sm:col-span-2">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                  <div className="sm:col-span-4">
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nombre <span className="text-red-500">*</span></label>
                     <input 
                       type="text" 
@@ -346,9 +380,68 @@ export default function Inventario() {
                       placeholder="Ej. Queso Mozzarella"
                     />
                   </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Categoría</label>
+                    <select 
+                      name="categoria" 
+                      value={form.categoria} 
+                      onChange={handleChange} 
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 text-gray-900 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                    >
+                      <option value="">Seleccionar una opción...</option>
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Unidad de Medida</label>
+                    <select 
+                      name="unidad_medida" 
+                      value={form.unidad_medida} 
+                      onChange={handleChange} 
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 text-gray-900 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                    >
+                      <option value="">Seleccionar una opción...</option>
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-1">
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Cant. Actual</label>
+                    <input 
+                      type="number" 
+                      name="cantidad" 
+                      value={form.cantidad} 
+                      onChange={handleChange} 
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 text-gray-900 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                      placeholder="0"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-1">
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Stock Mín.</label>
+                    <input 
+                      type="number" 
+                      name="stock_minimo" 
+                      value={form.stock_minimo} 
+                      onChange={handleChange} 
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 text-gray-900 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                      placeholder="0"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Vencimiento</label>
+                    <input 
+                      type="date" 
+                      name="fecha_vencimiento" 
+                      value={form.fecha_vencimiento} 
+                      onChange={handleChange} 
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 text-gray-900 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                    />
+                  </div>
                   
                   <div className="sm:col-span-1">
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Precio (ARS) <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Precio <span className="text-red-500">*</span></label>
                     <input 
                       type="number" 
                       step="0.01"
@@ -360,29 +453,7 @@ export default function Inventario() {
                     />
                   </div>
 
-                  <div className="sm:col-span-2">
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">URL Imagen</label>
-                    <input 
-                      type="text" 
-                      name="imagen" 
-                      value={form.imagen} 
-                      onChange={handleChange} 
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 text-gray-900 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
-                      placeholder="https://..."
-                    />
-                  </div>
 
-                  <div className="sm:col-span-2">
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Descripción</label>
-                    <textarea 
-                      name="descripcion" 
-                      value={form.descripcion} 
-                      onChange={handleChange} 
-                      rows={3}
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 text-gray-900 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all resize-none"
-                      placeholder="Detalles sobre la materia prima..."
-                    />
-                  </div>
                 </div>
               </form>
             </div>

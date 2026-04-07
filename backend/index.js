@@ -26,7 +26,8 @@ app.get('/db', async (req, res) => {
 // Obtener todos los productos
 app.get('/products', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM producto');
+    // ORDER BY para que siempre se muestren en el mismo orden
+    const result = await pool.query('SELECT * FROM producto ORDER BY idproducto DESC');
     res.json(result.rows);
   } catch (error) {
     console.error('Error al obtener productos:', error.message);
@@ -37,13 +38,15 @@ app.get('/products', async (req, res) => {
 // Crear un nuevo producto
 app.post('/products', async (req, res) => {
   try {
-    const { nombre, descripcion, precio, imagen } = req.body;
+    // agregamos los nuevos campos del inventario
+    const { idcategoria, nombre, descripcion, precio, cantidad, stock_minimo, fecha_vencimiento } = req.body;
 
+    // Actualizamos el INSERT y los valores ($1, $2...)
     const result = await pool.query(
-      `INSERT INTO producto (nombre, descripcion, precio, imagen, fecha)
-       VALUES ($1, $2, $3, $4, NOW())
+      `INSERT INTO producto (idcategoria, nombre, descripcion, precio, cantidad, stock_minimo, fecha_vencimiento, fecha)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
        RETURNING *`,
-      [nombre, descripcion, precio, imagen]
+      [idcategoria, nombre, descripcion, precio, cantidad, stock_minimo, fecha_vencimiento]
     );
 
     res.status(201).json(result.rows[0]);
@@ -69,14 +72,16 @@ app.delete('/products/:id', async (req, res) => {
 app.put('/products/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { nombre, descripcion, precio, imagen } = req.body;
+    // quitamos 'imagen' y agregamos lo nuevo
+    const { idcategoria, nombre, descripcion, precio, cantidad, stock_minimo, fecha_vencimiento } = req.body;
 
+    //Actualizamos el UPDATE
     const result = await pool.query(
       `UPDATE producto 
-       SET nombre = $1, descripcion = $2, precio = $3, imagen = $4 
-       WHERE idproducto = $5 
+       SET idcategoria = $1, nombre = $2, descripcion = $3, precio = $4, cantidad = $5, stock_minimo = $6, fecha_vencimiento = $7
+       WHERE idproducto = $8 
        RETURNING *`,
-      [nombre, descripcion, precio, imagen, id]
+      [idcategoria, nombre, descripcion, precio, cantidad, stock_minimo, fecha_vencimiento, id]
     );
 
     if (result.rows.length === 0) {
