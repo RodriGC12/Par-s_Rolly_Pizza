@@ -95,6 +95,144 @@ app.put('/products/:id', async (req, res) => {
   }
 });
 
+// ==== RUTAS PARA ÓRDENES ====
+
+// 1. GET /orders
+app.get('/orders', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        o.idorden, o.estado, o.fecha, m.numeromesa as mesa,
+        d.cantidad, p.nombre, p.precio
+      FROM orden o
+      LEFT JOIN mesa m ON o.idmesa = m.idmesa
+      LEFT JOIN detalleorden d ON o.idorden = d.idorden
+      LEFT JOIN producto p ON d.idproducto = p.idproducto
+      ORDER BY o.idorden DESC
+    `);
+    
+    // Agrupar productos por orden en JS
+    const ordersMap = {};
+    result.rows.forEach(row => {
+      if (!ordersMap[row.idorden]) {
+        ordersMap[row.idorden] = {
+          idorden: row.idorden,
+          estado: row.estado,
+          mesa: row.mesa,
+          fecha: row.fecha,
+          total: 0,
+          detalles: []
+        };
+      }
+      
+      if (row.nombre) {
+        const itemTotal = Number(row.cantidad || 0) * Number(row.precio || 0);
+        ordersMap[row.idorden].total += itemTotal;
+        ordersMap[row.idorden].detalles.push({
+          nombre: row.nombre,
+          cantidad: row.cantidad,
+          precio: row.precio
+        });
+      }
+    });
+
+    res.json(Object.values(ordersMap));
+  } catch (error) {
+    console.error('Error GET /orders:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// 2. POST /orders
+app.post('/orders', async (req, res) => {
+  const { idMesa, idUsuario, idCliente, productos } = req.body;
+
+  const client = await pool.connect(); 
+
+  try {
+    await client.query('BEGIN');
+
+    // 1. Insertar orden
+    const insertOrden = await client.query(
+      `INSERT INTO orden (idmesa, idusuarios, idcliente, estado, fecha) 
+       VALUES ($1, $2, $3, $4, NOW()) RETURNING idorden`,
+      [idMesa, idUsuario, idCliente, 'pendiente']
+    );
+
+    const orderId = insertOrden.rows[0].idorden;
+
+    // 2. Insertar detalles
+    if (productos && productos.length > 0) {
+      for (let p of productos) {
+        await client.query(
+          `INSERT INTO detalleorden (idorden, idproducto, cantidad) 
+           VALUES ($1, $2, $3)`,
+          [orderId, p.idProducto, p.cantidad]
+        );
+      }
+    }
+
+    await client.query('COMMIT');
+
+    res.status(201).json({
+      message: 'Orden creada exitosamente',
+      idorden: orderId
+    });
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error POST /orders:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+
+  } finally {
+    client.release(); 
+  }
+});
+
+// 3. PATCH /orders/:id
+app.patch('/orders/:id', async (req, res) => {
+  const { id } = req.params;
+  const { estado } = req.body; // se espera string para los estados nuevos
+  try {
+    const result = await pool.query(
+      `UPDATE orden SET estado = $1 WHERE idorden = $2 RETURNING *`,
+      [estado, id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Orden no encontrada' });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error PATCH /orders:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// 4. DELETE /orders/:id
+app.delete('/orders/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('BEGIN');
+    
+    // 1ro borrar dependencias
+    await pool.query('DELETE FROM detalleorden WHERE idorden = $1', [id]);
+    
+    // 2do borrar orden maestra
+    const result = await pool.query('DELETE FROM orden WHERE idorden = $1 RETURNING *', [id]);
+    
+    await pool.query('COMMIT');
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Orden no encontrada' });
+    }
+    res.json({ message: 'Orden y detalles eliminados exitosamente' });
+  } catch (error) {
+    await pool.query('ROLLBACK');
+    console.error('Error DELETE /orders:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 app.listen(3000, () => {
   console.log('Servidor en http://localhost:3000');
 });
