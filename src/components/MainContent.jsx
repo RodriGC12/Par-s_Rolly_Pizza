@@ -1,4 +1,5 @@
 import React from 'react';
+import Inventario from './Inventario';
 
 // A simple dictionary to map view IDs to display titles
 const VIEW_TITLES = {
@@ -20,15 +21,19 @@ export default function MainContent({ activeView }) {
       </header>
       
       <main className="p-8">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-8 min-h-[calc(100vh-12rem)] flex flex-col items-center justify-center">
-          <div className="text-center text-slate-400">
-            <div className="w-16 h-16 rounded-full bg-slate-50 border-2 border-dashed border-slate-200 flex items-center justify-center mx-auto mb-4">
-               <span className="text-2xl">🍕</span>
+        {activeView === 'inventario' ? (
+          <Inventario />
+        ) : (
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-8 min-h-[calc(100vh-12rem)] flex flex-col items-center justify-center">
+            <div className="text-center text-slate-400">
+              <div className="w-16 h-16 rounded-full bg-slate-50 border-2 border-dashed border-slate-200 flex items-center justify-center mx-auto mb-4">
+                 <span className="text-2xl">🍕</span>
+              </div>
+              <p className="text-xl font-medium text-slate-600 mb-2">Contenido de {currentTitle}</p>
+              <p className="text-sm">Esta sección es un placeholder para el dashboard base.</p>
             </div>
-            <p className="text-xl font-medium text-slate-600 mb-2">Contenido de {currentTitle}</p>
-            <p className="text-sm">Esta sección es un placeholder para el dashboard base.</p>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );

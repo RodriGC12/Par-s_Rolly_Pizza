@@ -57,10 +57,35 @@ app.post('/products', async (req, res) => {
 app.delete('/products/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    await pool.query('DELETE FROM producto WHERE idproducto = $1', [id]);
+    await pool.query('DELETE FROM producto WHERE idproducto= $1', [id]);
     res.json({ message: 'Producto eliminado exitosamente' });
   } catch (error) {
     console.error('Error al eliminar producto:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Actualizar un producto
+app.put('/products/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nombre, descripcion, precio, imagen } = req.body;
+
+    const result = await pool.query(
+      `UPDATE producto 
+       SET nombre = $1, descripcion = $2, precio = $3, imagen = $4 
+       WHERE idproducto = $5 
+       RETURNING *`,
+      [nombre, descripcion, precio, imagen, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Producto no encontrado' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error al actualizar producto:', error.message);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
