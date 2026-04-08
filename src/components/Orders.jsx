@@ -24,6 +24,12 @@ const TrashIcon = () => (
   </svg>
 );
 
+const UndoIcon = () => (
+  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+  </svg>
+);
+
 export default function Orders() {
   const [orders, setOrders] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -74,6 +80,24 @@ export default function Orders() {
     } catch (error) {
       console.error("Error actualizando la orden:", error);
       alert("Hubo un error al actualizar la orden.");
+    }
+  };
+
+  const handleRevertStatus = async (id) => {
+    try {
+      const response = await fetch(`http://localhost:3000/orders/${id}/revert-status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error retrocediendo estado');
+      }
+      
+      fetchOrders();
+    } catch (error) {
+      console.error("Error retrocediendo la orden:", error);
+      alert(error.message || "Hubo un error al retroceder la orden.");
     }
   };
 
@@ -305,22 +329,40 @@ export default function Orders() {
                   )}
 
                   {orden.estado === 'preparacion' && (
-                    <button 
-                      onClick={() => handleUpdateStatus(orden.id || orden.idorden, 'lista')}
-                      className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2"
-                    >
-                      <CheckIcon />
-                      <span>Marcar Lista</span>
-                    </button>
+                    <div className="flex flex-col gap-2">
+                      <button 
+                        onClick={() => handleUpdateStatus(orden.id || orden.idorden, 'lista')}
+                        className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2"
+                      >
+                        <CheckIcon />
+                        <span>Marcar Lista</span>
+                      </button>
+                      <button 
+                        onClick={() => handleRevertStatus(orden.id || orden.idorden)}
+                        className="w-full bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-medium py-2 rounded-lg transition-colors flex justify-center items-center gap-2 text-sm"
+                      >
+                        <UndoIcon />
+                        <span>Retroceder estado</span>
+                      </button>
+                    </div>
                   )}
 
                   {orden.estado === 'lista' && (
-                    <button 
-                      onClick={() => handleUpdateStatus(orden.id || orden.idorden, 'entregada')}
-                      className="w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2"
-                    >
-                      <span>Entregar</span>
-                    </button>
+                    <div className="flex flex-col gap-2">
+                      <button 
+                        onClick={() => handleUpdateStatus(orden.id || orden.idorden, 'entregada')}
+                        className="w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2"
+                      >
+                        <span>Entregar</span>
+                      </button>
+                      <button 
+                        onClick={() => handleRevertStatus(orden.id || orden.idorden)}
+                        className="w-full bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-medium py-2 rounded-lg transition-colors flex justify-center items-center gap-2 text-sm"
+                      >
+                        <UndoIcon />
+                        <span>Retroceder estado</span>
+                      </button>
+                    </div>
                   )}
 
                   {orden.estado === 'entregada' && (

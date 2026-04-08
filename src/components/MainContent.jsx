@@ -1,6 +1,7 @@
 import React from 'react';
 import Inventario from './Inventario';
 import Orders from './Orders';
+import Kitchen from './Kitchen';
 
 // A simple dictionary to map view IDs to display titles
 const VIEW_TITLES = {
@@ -21,11 +22,13 @@ export default function MainContent({ activeView }) {
         <h2 className="text-2xl font-semibold text-slate-800">{currentTitle}</h2>
       </header>
       
-      <main className="p-8">
+      <main className="p-8 h-[calc(100vh-5rem)]">
         {activeView === 'inventario' ? (
           <Inventario />
         ) : activeView === 'ordenes' ? (
           <Orders />
+        ) : activeView === 'cocina' ? (
+          <Kitchen />
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-8 min-h-[calc(100vh-12rem)] flex flex-col items-center justify-center">
             <div className="text-center text-slate-400">

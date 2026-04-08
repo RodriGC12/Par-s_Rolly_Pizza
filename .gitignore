@@ -35,3 +35,6 @@ lerna-debug.log*
 # Ignora carpetas de datos locales si decides no usar named volumes
 pgdata/
 postgres_data/
+
+#--- BASE DE DATOS ---
+backup.sql
