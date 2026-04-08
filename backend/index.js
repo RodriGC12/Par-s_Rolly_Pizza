@@ -2,10 +2,16 @@ import express from 'express';
 import pool from './db.js';
 import cors from 'cors';
 
+// Rutas modulares
+import cajaRoutes from './src/caja/routes/caja.routes.js';
+
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// Montar rutas del módulo Caja
+app.use('/api/caja', cajaRoutes);
 
 // test simple
 app.get('/', (req, res) => {
