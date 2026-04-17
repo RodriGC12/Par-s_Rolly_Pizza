@@ -138,18 +138,23 @@ export default function Usuarios() {
     }
   };
 
-  const handleToggleEstado = async (id, estadoActual) => {
-    if (!window.confirm(`¿Seguro que deseas ${estadoActual ? 'desactivar' : 'activar'} esta cuenta?`)) return;
+  const handleDeleteUsuario = async (id) => {
+    if (!window.confirm('¿Seguro que deseas BORRAR permanentemente este usuario? Esta acción no se puede deshacer.')) return;
     
     try {
-      await fetch(`http://localhost:3000/api/usuarios/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ activo: !estadoActual }) // Mandar los minimos campos u obligar update simple. En la API lo soporta.
+      const res = await fetch(`http://localhost:3000/api/usuarios/${id}`, {
+        method: 'DELETE'
       });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        alert(data.error || 'No se pudo borrar el usuario');
+        return;
+      }
       fetchUsuarios();
     } catch (e) {
       console.error(e);
+      alert('Ocurrió un error al intentar borrar el usuario.');
     }
   };
 
@@ -250,9 +255,9 @@ export default function Usuarios() {
                           <EditIcon />
                         </button>
                         <button 
-                          onClick={() => handleToggleEstado(u.id, u.activo)}
+                          onClick={() => handleDeleteUsuario(u.id)}
                           className="p-1.5 text-rose-400 hover:bg-rose-50 hover:text-rose-600 rounded-md transition-colors"
-                          title={u.activo ? 'Desactivar cuenta' : 'Activar cuenta'}
+                          title="Borrar cuenta permanentemente"
                         >
                           <TrashIcon />
                         </button>

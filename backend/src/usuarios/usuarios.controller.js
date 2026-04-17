@@ -62,7 +62,11 @@ export const updateUsuario = async (req, res) => {
   try {
     const rolesQuery = await pool.query('SELECT idrol FROM rol WHERE nombre ILIKE $1', [rol]);
     let id_rol = null;
-    if (rolesQuery.rows.length > 0) {
+
+    if (rolesQuery.rows.length === 0 && rol) {
+       const newRol = await pool.query('INSERT INTO rol (nombre) VALUES ($1) RETURNING idrol', [rol]);
+       id_rol = newRol.rows[0].idrol;
+    } else if (rolesQuery.rows.length > 0) {
        id_rol = rolesQuery.rows[0].idrol;
     }
 
@@ -99,13 +103,31 @@ export const updateUsuario = async (req, res) => {
   }
 };
 
+export const toggleUsuarioActivo = async (req, res) => {
+  const { id } = req.params;
+  const { activo } = req.body;
+  try {
+    await pool.query('UPDATE usuarios SET activo = $1 WHERE idusuarios = $2', [activo, id]);
+    res.json({ message: 'Estado actualizado correctamente' });
+  } catch (error) {
+    console.error('Error PATCH /usuarios/toggle:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+};
+
 export const deleteUsuario = async (req, res) => {
   const { id } = req.params;
   try {
-    await pool.query('UPDATE usuarios SET activo = false WHERE idusuarios = $1', [id]);
-    res.json({ message: 'Usuario desactivado correctamente' });
+    const result = await pool.query('DELETE FROM usuarios WHERE idusuarios = $1 RETURNING idusuarios', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+    res.json({ message: 'Usuario eliminado permanentemente' });
   } catch (error) {
+    if (error.code === '23503') {
+       return res.status(400).json({ error: 'No se puede borrar este usuario de forma permanente porque tiene órdenes o transacciones en caja a su nombre. Usa el botón "Editar" para desactivar su cuenta.' });
+    }
     console.error('Error DELETE /usuarios:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    res.status(500).json({ error: 'Error interno del servidor al borrar' });
   }
 };
