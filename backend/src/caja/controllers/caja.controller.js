@@ -123,7 +123,7 @@ export class CajaController {
     } catch (error) {
       if (error.message === 'SIN_CAJA_ABIERTA') return res.status(403).json({ error: 'La caja está cerrada. Debes abrir la caja primero.' });
       if (error.message === 'ORDEN_NO_ENCONTRADA') return res.status(404).json({ error: 'La orden indicada no existe' });
-      if (error.message === 'ESTADO_INVALIDO') return res.status(400).json({ error: 'La orden no se encuentra en estado LISTA' });
+      if (error.message === 'ESTADO_INVALIDO') return res.status(400).json({ error: 'La orden debe estar en estado LISTA o ENTREGADA para ser cobrada' });
       if (error.message === 'MONTO_INSUFICIENTE') return res.status(400).json({ error: 'El monto en efectivo recibido es menor al total' });
       
       console.error('Error en CajaController.procesarPago:', error);

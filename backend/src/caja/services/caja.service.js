@@ -112,7 +112,7 @@ export class CajaService {
           (SELECT SUM(d.cantidad * p.precio) FROM detalleorden d JOIN producto p ON d.idproducto = p.idproducto WHERE d.idorden = o.idorden), 0
         ) as total
       FROM orden o LEFT JOIN mesa m ON o.idmesa = m.idmesa
-      WHERE o.estado = 'lista' ORDER BY o.fecha ASC
+      WHERE o.estado IN ('lista', 'entregada') ORDER BY o.fecha ASC
     `;
     const result = await pool.query(query);
     return result.rows;
@@ -148,7 +148,7 @@ export class CajaService {
       
       const ordenRes = await client.query('SELECT estado FROM orden WHERE idorden = $1 FOR UPDATE', [orden_id]);
       if (ordenRes.rows.length === 0) throw new Error('ORDEN_NO_ENCONTRADA');
-      if (ordenRes.rows[0].estado !== 'lista') throw new Error('ESTADO_INVALIDO');
+      if (!['lista', 'entregada'].includes(ordenRes.rows[0].estado)) throw new Error('ESTADO_INVALIDO');
       
       const detallesRes = await client.query(`
         SELECT SUM(d.cantidad * p.precio) as total FROM detalleorden d JOIN producto p ON d.idproducto = p.idproducto WHERE d.idorden = $1
@@ -166,7 +166,7 @@ export class CajaService {
       await client.query(`INSERT INTO pagos (orden_id, metodo_pago, monto, monto_recibido, cambio, usuario_id) VALUES ($1, $2, $3, $4, $5, $6)`, 
       [orden_id, metodo_pago, total, monto_recibido_final, cambio, usuario_id]);
 
-      await client.query(`UPDATE orden SET estado = 'pagada', total = $1, fecha_cierre = NOW() WHERE idorden = $2`, [total, orden_id]);
+      await client.query(`UPDATE orden SET estado = 'pagada' WHERE idorden = $1`, [orden_id]);
 
       // INYECTAR MOVIMIENTO DE CAJA
       await CajaService.crearMovimiento(client, {
