@@ -4,6 +4,8 @@ import cors from 'cors';
 
 // Rutas modulares
 import cajaRoutes from './src/caja/routes/caja.routes.js';
+import dashboardRoutes from './src/dashboard/dashboard.routes.js';
+import usuariosRoutes from './src/usuarios/usuarios.routes.js';
 
 const app = express();
 
@@ -12,6 +14,9 @@ app.use(express.json());
 
 // Montar rutas del módulo Caja
 app.use('/api/caja', cajaRoutes);
+// Montar nuevas rutas
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/usuarios', usuariosRoutes);
 
 // test simple
 app.get('/', (req, res) => {

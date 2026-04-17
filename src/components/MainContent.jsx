@@ -3,6 +3,8 @@ import Inventario from './Inventario';
 import Orders from './Orders';
 import Kitchen from './Kitchen';
 import Caja from './Caja';
+import Dashboard from './Dashboard';
+import Usuarios from './Usuarios';
 
 // A simple dictionary to map view IDs to display titles
 const VIEW_TITLES = {
@@ -32,6 +34,10 @@ export default function MainContent({ activeView }) {
           <Kitchen />
         ) : activeView === 'caja' ? (
           <Caja />
+        ) : activeView === 'dashboard' ? (
+          <Dashboard />
+        ) : activeView === 'usuarios' ? (
+          <Usuarios />
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-8 min-h-[calc(100vh-12rem)] flex flex-col items-center justify-center">
             <div className="text-center text-slate-400">
