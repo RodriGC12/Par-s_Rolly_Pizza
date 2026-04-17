@@ -143,8 +143,8 @@ export default function Inventario() {
         body: JSON.stringify({
           nombre: form.nombre,
           precio: parseFloat(form.precio) || 0,
-          categoria: form.categoria,
-          unidad_medida: form.unidad_medida,
+          idcategoria: form.categoria ? parseInt(form.categoria) : null,
+          descripcion: null,
           cantidad: parseInt(form.cantidad, 10) || 0,
           stock_minimo: parseInt(form.stock_minimo, 10) || 0,
           fecha_vencimiento: form.fecha_vencimiento || null

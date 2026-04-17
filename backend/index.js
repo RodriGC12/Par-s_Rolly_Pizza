@@ -52,7 +52,15 @@ app.post('/products', async (req, res) => {
       `INSERT INTO producto (idcategoria, nombre, descripcion, precio, cantidad, stock_minimo, fecha_vencimiento, fecha)
        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
        RETURNING *`,
-      [idcategoria, nombre, descripcion, precio, cantidad, stock_minimo, fecha_vencimiento]
+      [
+        idcategoria !== undefined ? idcategoria : null, 
+        nombre, 
+        descripcion !== undefined ? descripcion : null, 
+        precio, 
+        cantidad !== undefined ? cantidad : 0, 
+        stock_minimo !== undefined ? stock_minimo : 0, 
+        fecha_vencimiento || null
+      ]
     );
 
     res.status(201).json(result.rows[0]);
@@ -87,7 +95,16 @@ app.put('/products/:id', async (req, res) => {
        SET idcategoria = $1, nombre = $2, descripcion = $3, precio = $4, cantidad = $5, stock_minimo = $6, fecha_vencimiento = $7
        WHERE idproducto = $8 
        RETURNING *`,
-      [idcategoria, nombre, descripcion, precio, cantidad, stock_minimo, fecha_vencimiento, id]
+      [
+        idcategoria !== undefined ? idcategoria : null, 
+        nombre, 
+        descripcion !== undefined ? descripcion : null, 
+        precio, 
+        cantidad !== undefined ? cantidad : 0, 
+        stock_minimo !== undefined ? stock_minimo : 0, 
+        fecha_vencimiento || null, 
+        id
+      ]
     );
 
     if (result.rows.length === 0) {
