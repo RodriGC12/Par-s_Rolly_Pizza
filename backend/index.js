@@ -3,6 +3,7 @@ import pool from './db.js';
 import cors from 'cors';
 
 // Rutas modulares
+import authRoutes from './src/auth/auth.routes.js';
 import cajaRoutes from './src/caja/routes/caja.routes.js';
 import dashboardRoutes from './src/dashboard/dashboard.routes.js';
 import usuariosRoutes from './src/usuarios/usuarios.routes.js';
@@ -15,6 +16,7 @@ app.use(express.json());
 // Montar rutas del módulo Caja
 app.use('/api/caja', cajaRoutes);
 // Montar nuevas rutas
+app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 
@@ -38,7 +40,7 @@ app.get('/db', async (req, res) => {
 app.get('/products', async (req, res) => {
   try {
     // ORDER BY para que siempre se muestren en el mismo orden
-    const result = await pool.query('SELECT * FROM producto ORDER BY idproducto DESC');
+    const result = await pool.query('SELECT * FROM producto WHERE activo = true ORDER BY idproducto DESC');
     res.json(result.rows);
   } catch (error) {
     console.error('Error al obtener productos:', error.message);
@@ -79,11 +81,11 @@ app.post('/products', async (req, res) => {
 app.delete('/products/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    await pool.query('DELETE FROM producto WHERE idproducto= $1', [id]);
+    await pool.query('UPDATE producto SET activo = false WHERE idproducto = $1', [id]);
     res.json({ message: 'Producto eliminado exitosamente' });
   } catch (error) {
-    console.error('Error al eliminar producto:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    console.error('Error al ocultar producto:', error);
+    res.status(500).json({ error: 'Error interno del servidor al ocultar' });
   }
 });
 

@@ -86,10 +86,13 @@ export default function Inventario() {
         setProductoEliminar(null);
         fetchProductos(); // Actualizar lista
       } else {
-        alert("Hubo un error al intentar eliminar el producto.");
+        const data = await response.json();
+        alert(data.error || "Hubo un error al intentar eliminar el producto.");
+        setProductoEliminar(null);
       }
     } catch (error) {
       console.error("Error eliminando:", error);
+      alert("Hubo un error de conexión al intentar eliminar el producto.");
     } finally {
       setEliminando(false);
     }

@@ -6,7 +6,6 @@ import Caja from './Caja';
 import Dashboard from './Dashboard';
 import Usuarios from './Usuarios';
 
-// A simple dictionary to map view IDs to display titles
 const VIEW_TITLES = {
   dashboard: 'Dashboard Principal',
   inventario: 'Gestión de Inventario',
@@ -16,12 +15,12 @@ const VIEW_TITLES = {
   usuarios: 'Administración de Usuarios'
 };
 
-export default function MainContent({ activeView }) {
+export default function MainContent({ activeView, user }) {
   const currentTitle = VIEW_TITLES[activeView] || 'Vista Desconocida';
 
   return (
     <div className="flex-1 bg-slate-50 h-full overflow-y-auto w-full">
-      <header className="bg-white border-b border-slate-200 px-8 py-5">
+      <header className="bg-white border-b border-slate-200 px-8 py-5 flex justify-between items-center">
         <h2 className="text-2xl font-semibold text-slate-800">{currentTitle}</h2>
       </header>
       
