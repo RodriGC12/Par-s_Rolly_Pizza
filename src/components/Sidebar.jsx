@@ -2,12 +2,12 @@ import React from 'react';
 import { LayoutDashboard, Package, Calculator, ClipboardList, ChefHat, Users, LogOut } from 'lucide-react';
 
 const MENU_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin'] },
-  { id: 'inventario', label: 'Inventario', icon: Package, roles: ['admin', 'cajero', 'mesero'] },
-  { id: 'caja', label: 'Caja', icon: Calculator, roles: ['admin', 'cajero'] },
-  { id: 'ordenes', label: 'Órdenes', icon: ClipboardList, roles: ['admin', 'cajero', 'mesero'] },
-  { id: 'cocina', label: 'Cocina', icon: ChefHat, roles: ['admin', 'cocinero'] },
-  { id: 'usuarios', label: 'Usuarios', icon: Users, roles: ['admin'] },
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'administrador'] },
+  { id: 'inventario', label: 'Inventario', icon: Package, roles: ['admin', 'administrador', 'cajero', 'mesero'] },
+  { id: 'caja', label: 'Caja', icon: Calculator, roles: ['admin', 'administrador', 'cajero'] },
+  { id: 'ordenes', label: 'Órdenes', icon: ClipboardList, roles: ['admin', 'administrador', 'cajero', 'mesero'] },
+  { id: 'cocina', label: 'Cocina', icon: ChefHat, roles: ['admin', 'administrador', 'cocinero'] },
+  { id: 'usuarios', label: 'Usuarios', icon: Users, roles: ['admin', 'administrador'] },
 ];
 
 export default function Sidebar({ activeView, setActiveView, user, onLogout }) {
